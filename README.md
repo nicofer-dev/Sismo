@@ -53,3 +53,7 @@ Frontend: `http://127.0.0.1:5173`
 ## Fuente de datos
 
 La primera versión conserva el Excel como fuente principal, tal como fue solicitado. La capa de servicios está separada para facilitar la posterior migración a PostgreSQL sin alterar los componentes del frontend.
+
+## Despliegue gratuito
+
+El frontend puede publicarse en Vercel y la API en Hugging Face Spaces usando el `Dockerfile` de la raíz. La API debe escuchar en el puerto `7860`.
