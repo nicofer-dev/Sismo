@@ -25,6 +25,7 @@ def metadata():
         "categories": CATEGORY_FIELDS,
         "official_summary": data["official_summary"],
         "map_metrics": [
+            {"key": "criticidad", "label": "Criticidad oficial"},
             {"key": "puntos", "label": "Puntos / casos"},
             {"key": "afectados_personas", "label": "Personas afectadas"},
             {"key": "afectados_familia", "label": "Familias afectadas"},
@@ -41,7 +42,13 @@ def municipalities(
     category: str | None = Query(default=None),
 ):
     rows = filter_municipalities(department, municipality, category)
-    return {"items": rows, "summary": make_summary(rows)}
+    all_rows = load_data()["municipalities"]
+    scale_max = {"puntos": max((item["puntos"] for item in all_rows), default=0)}
+    for key in ("afectados_personas", "afectados_familia", "heridos", "fallecidos"):
+        scale_max[key] = max((item[key] for item in all_rows), default=0)
+    for category_name in CATEGORY_FIELDS:
+        scale_max[f"cat::{category_name}"] = max((item["categorias"].get(category_name, 0) for item in all_rows), default=0)
+    return {"items": rows, "summary": make_summary(rows), "scale_max": scale_max}
 
 
 @router.get("/summary")
