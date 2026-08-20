@@ -31,6 +31,30 @@ CATEGORY_FIELDS = [
     "Robo",
 ]
 
+DAMAGE_FIELDS = [
+    "Edificación colapsada",
+    "Edificación con daño",
+    "Vivienda afectada",
+    "Hospital o centro de salud",
+    "Escuela o colegio",
+    "Patrimonio o templo",
+    "Servicio público",
+    "Vía afectada",
+    "Deslizamiento",
+    "Puente",
+    "Incendio",
+    "Saqueo",
+    "Robo",
+]
+
+SUPPORT_FIELDS = [
+    "Albergue o punto de atención",
+    "Punto de ayuda o acopio",
+    "Novedad o noticia",
+    "Toque de queda o restricción",
+    "Otro",
+]
+
 
 def _clean(value: Any) -> Any:
     if value is None:
@@ -157,6 +181,8 @@ def load_data() -> dict[str, Any]:
             "noticia_2": news.get("noticia_2"),
             "categorias": {field: _int(row.get(field)) for field in CATEGORY_FIELDS},
         }
+        item["danos"] = sum(item["categorias"][field] for field in DAMAGE_FIELDS)
+        item["apoyo"] = sum(item["categorias"][field] for field in SUPPORT_FIELDS)
         municipalities.append(item)
 
     departments = sorted({m["departamento"] for m in municipalities})

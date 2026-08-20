@@ -25,6 +25,8 @@ def metadata():
         "categories": CATEGORY_FIELDS,
         "official_summary": data["official_summary"],
         "map_metrics": [
+            {"key": "danos", "label": "Daños y afectaciones"},
+            {"key": "apoyo", "label": "Apoyo y respuesta"},
             {"key": "criticidad", "label": "Criticidad oficial"},
             {"key": "puntos", "label": "Puntos / casos"},
             {"key": "afectados_personas", "label": "Personas afectadas"},
@@ -43,7 +45,7 @@ def municipalities(
 ):
     rows = filter_municipalities(department, municipality, category)
     all_rows = load_data()["municipalities"]
-    scale_max = {"puntos": max((item["puntos"] for item in all_rows), default=0)}
+    scale_max = {key: max((item[key] for item in all_rows), default=0) for key in ("danos", "apoyo", "puntos", "afectados_personas", "afectados_familia", "heridos", "fallecidos")}
     for key in ("afectados_personas", "afectados_familia", "heridos", "fallecidos"):
         scale_max[key] = max((item[key] for item in all_rows), default=0)
     for category_name in CATEGORY_FIELDS:
