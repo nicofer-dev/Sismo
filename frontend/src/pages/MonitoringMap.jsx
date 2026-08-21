@@ -12,7 +12,7 @@ function fmt(value) {
 
 export default function MonitoringMap({ metadata, data, mapData, filters, setFilters }) {
   const [topology, setTopology] = useState(null);
-  const [metric, setMetric] = useState("criticidad");
+  const [metric, setMetric] = useState("danos");
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       </select></label>
     </section>
     <Filters metadata={metadata} filters={filters} setFilters={setFilters} />
-    <div className="map-note"><Info size={15}/><span>Rojo oscuro: reporte crítico oficial. Verde claro: municipio con datos, pero sin reporte crítico oficial. Gris: sin datos registrados.</span></div>
+    <div className="map-note"><Info size={15}/><span>El mapa de calor representa la suma de daños y afectaciones. Los puntos de apoyo se consultan por separado; la clasificación oficial también está disponible como métrica.</span></div>
     <div className="map-layout">
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
