@@ -10,6 +10,13 @@ export function criticalityValue(value) {
   return ({ "sin clasificación oficial": 0, "sin clasificación": 0, baja: 1, media: 2, "media alta": 3, alta: 4, "muy alta": 5, crítica: 6 }[normalized] ?? 0);
 }
 
+export function mapCriticalityValue(item) {
+  if (!item) return 0;
+  if (item.criticidad === "Afectación crítica") return 6;
+  if (item.puntos > 0 || item.danos > 0 || item.apoyo > 0 || item.afectados_personas > 0 || item.heridos > 0 || item.fallecidos > 0) return 1;
+  return 0;
+}
+
 export function colorFor(value, maxValue) {
   if (!value || value <= 0) return "#E2E8F0";
   const ratio = maxValue > 0 ? value / maxValue : 0;

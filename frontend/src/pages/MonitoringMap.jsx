@@ -2,41 +2,113 @@ import { useEffect, useMemo, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
 import { feature } from "topojson-client";
 import "leaflet/dist/leaflet.css";
-import { MapPinned, Info } from "lucide-react";
+import { Info, MapPinned } from "lucide-react";
 import Filters from "../components/Filters";
-import { colorFor, metricValue } from "../utils/map";
+import { colorFor, mapCriticalityValue, metricValue } from "../utils/map";
 
-function fmt(v){ return new Intl.NumberFormat("es-CO").format(Number(v || 0)); }
+function fmt(value) {
+  return new Intl.NumberFormat("es-CO").format(Number(value || 0));
+}
 
 export default function MonitoringMap({ metadata, data, mapData, filters, setFilters }) {
   const [topology, setTopology] = useState(null);
   const [metric, setMetric] = useState("criticidad");
   const [selected, setSelected] = useState(null);
-  useEffect(() => { fetch("/data/mapa_municipios.json").then(r => r.json()).then(setTopology); }, []);
+
   useEffect(() => {
-    const filteredMunicipality = filters.municipality ? (data?.items || []).find(item => item.municipio === filters.municipality) : null;
-    setSelected(filteredMunicipality || ((data?.items || []).length === 1 ? data.items[0] : null));
+    fetch("/data/mapa_municipios.json").then(response => response.json()).then(setTopology);
+  }, []);
+
+  useEffect(() => {
+    const municipality = filters.municipality
+      ? (data?.items || []).find(item => item.municipio === filters.municipality)
+      : null;
+    setSelected(municipality || ((data?.items || []).length === 1 ? data.items[0] : null));
   }, [data, filters.municipality]);
-  const byCode = useMemo(() => Object.fromEntries((mapData?.items || data?.items || []).map(x => [x.divipola, x])), [mapData, data]);
-  const geo = useMemo(() => topology ? feature(topology, topology.objects.MGN_MPIO_POLITICO_rJAC) : null, [topology]);
+
+  const byCode = useMemo(
+    () => Object.fromEntries((mapData?.items || data?.items || []).map(item => [item.divipola, item])),
+    [mapData, data],
+  );
+  const geo = useMemo(
+    () => topology ? feature(topology, topology.objects.MGN_MPIO_POLITICO_rJAC) : null,
+    [topology],
+  );
   const maxValue = metric === "criticidad" ? 6 : (mapData?.scale_max?.[metric] || data?.scale_max?.[metric] || 0);
-  const metricLabel = metadata?.map_metrics?.find(x => x.key === metric)?.label || "Puntos / casos";
+  const metricLabel = metadata?.map_metrics?.find(item => item.key === metric)?.label || "Puntos / casos";
 
-  const style = (f) => {
-    const item = byCode[String(f.properties.codigo_municipio_s).padStart(5,"0")];
-    const value = metricValue(item, metric);
-    return { fillColor: colorFor(value, maxValue), weight: item ? 1.1 : .45, color: item?.criticidad_mapa === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1", fillOpacity: item ? .82 : .35 };
+  const valueFor = item => metric === "criticidad" ? mapCriticalityValue(item) : metricValue(item, metric);
+  const style = geoFeature => {
+    const item = byCode[String(geoFeature.properties.codigo_municipio_s).padStart(5, "0")];
+    return {
+      fillColor: colorFor(valueFor(item), maxValue),
+      weight: item ? 1.1 : .45,
+      color: item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
+      fillOpacity: item ? .82 : .35,
+    };
   };
-  const onEachFeature = (f, layer) => {
-    const code = String(f.properties.codigo_municipio_s).padStart(5,"0");
+
+  const onEachFeature = (geoFeature, layer) => {
+    const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
     const item = byCode[code];
-    const value = metricValue(item, metric);
-    layer.bindTooltip(item ? `<strong>${item.municipio}</strong><br/>${item.departamento}<br/>${metricLabel}: ${metric === "criticidad" ? (item.criticidad_mapa || "Sin clasificación") : fmt(value)}<br/>Daños: ${fmt(item.danos)} · Apoyo: ${fmt(item.apoyo)}<br/>${item.criticidad === "Sin clasificación oficial" ? "Clasificación calculada" : "Criticidad oficial"}: ${item.criticidad_mapa || "Sin clasificación"}` : `DIVIPOLA ${code}`, {sticky:true});
-    layer.on({ click: () => item && setSelected(item), mouseover: e => e.target.setStyle({weight:2.2,color:"#0F172A"}), mouseout: e => e.target.setStyle(style(f)) });
+    const value = valueFor(item);
+    const mapLabel = metric === "criticidad"
+      ? (item?.criticidad === "Afectación crítica" ? "Crítico oficial" : item ? "Baja / con datos" : "Sin datos")
+      : fmt(value);
+    layer.bindTooltip(item
+      ? `<strong>${item.municipio}</strong><br/>${item.departamento}<br/>${metricLabel}: ${mapLabel}<br/>Daños: ${fmt(item.danos)} · Apoyo: ${fmt(item.apoyo)}<br/>Criticidad oficial: ${item.criticidad || "Sin clasificación oficial"}`
+      : `DIVIPOLA ${code}`, { sticky: true });
+    layer.on({
+      click: () => item && setSelected(item),
+      mouseover: event => event.target.setStyle({ weight: 2.2, color: "#0F172A" }),
+      mouseout: event => event.target.setStyle(style(geoFeature)),
+    });
   };
 
-  return <div className="map-page"><section className="map-toolbar"><div><span className="eyebrow">MONITOREO MUNICIPAL</span><h1>Mapa de daños y afectaciones</h1><p>Los polígonos municipales se colorean según daños, apoyo o criticidad oficial.</p></div><label>Métrica del mapa<select value={metric} onChange={e => setMetric(e.target.value)}>{metadata?.map_metrics?.map(x => <option key={x.key} value={x.key}>{x.label}</option>)}</select></label></section>
-    <Filters metadata={metadata} filters={filters} setFilters={setFilters}/><div className="map-note"><Info size={15}/><span>El color inicial representa la clasificación oficial o calculada cuando no existe una oficial. El verde suave corresponde a afectación baja; el gris queda para municipios sin clasificación ni datos.</span></div><div className="map-layout"><section className="map-card">{geo ? <MapContainer center={[4.3,-73.4]} zoom={5.3} minZoom={4} style={{height:"100%",width:"100%"}} zoomControl={true}><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/><GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}`} data={geo} style={style} onEachFeature={onEachFeature}/></MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}<div className="legend"><strong>{metric === "criticidad" ? "Criticidad oficial / calculada" : metric === "danos" ? "Daños y afectaciones" : metric === "apoyo" ? "Apoyo y respuesta" : "Intensidad"}</strong><span><i style={{background:"#991B1B"}}/>{metric === "criticidad" ? "Crítica" : "Muy alta"}</span><span><i style={{background:"#DC2626"}}/>{metric === "criticidad" ? "Muy alta / alta" : "Alta"}</span><span><i style={{background:"#F97316"}}/>{metric === "criticidad" ? "Media-alta" : "Media-alta"}</span><span><i style={{background:"#FACC15"}}/>{metric === "criticidad" ? "Media" : "Media"}</span><span><i style={{background:"#BBF7D0"}}/>{metric === "criticidad" ? "Baja" : "Baja"}</span><span><i style={{background:"#E2E8F0"}}/>Sin clasificación / registro</span></div></section>
-      <aside className="detail-panel">{selected ? <><div className="detail-title"><MapPinned size={20}/><div><h2>{selected.municipio}</h2><span>{selected.departamento}</span></div></div><div className="detail-metric"><span>{metricLabel}</span><strong>{metric === "criticidad" ? (selected.criticidad_mapa || "Sin clasificación") : fmt(metricValue(selected,metric))}</strong></div><dl><div><dt>Puntos totales</dt><dd>{fmt(selected.puntos)}</dd></div><div><dt>Daños y afectaciones</dt><dd>{fmt(selected.danos)}</dd></div><div><dt>Apoyo y respuesta</dt><dd>{fmt(selected.apoyo)}</dd></div><div><dt>Personas afectadas</dt><dd>{fmt(selected.afectados_personas)}</dd></div><div><dt>Heridos</dt><dd>{fmt(selected.heridos)}</dd></div><div><dt>Fallecidos</dt><dd>{fmt(selected.fallecidos)}</dd></div><div><dt>{selected.criticidad === "Sin clasificación oficial" ? "Clasificación calculada" : "Criticidad oficial"}</dt><dd>{selected.criticidad_mapa || "Sin clasificación"}</dd></div></dl><p className="detail-description">{selected.descripcion || "Sin descripción registrada."}</p></> : <div className="detail-empty"><MapPinned size={34}/><h2>Detalle municipal</h2>{data?.items?.length ? <><p>Selecciona un municipio del filtro actual:</p><div className="filtered-municipalities">{data.items.map(item => <button key={item.divipola} type="button" onClick={() => setSelected(item)}>{item.municipio}<span>{item.departamento}</span></button>)}</div></> : <p>No hay municipios para el filtro actual.</p>}</div>}</aside>
-    </div></div>
+  const legendTitle = metric === "criticidad"
+    ? "Reporte oficial"
+    : metric === "danos" ? "Daños y afectaciones"
+      : metric === "apoyo" ? "Apoyo y respuesta" : "Intensidad";
+
+  return <div className="map-page">
+    <section className="map-toolbar">
+      <div>
+        <span className="eyebrow">MONITOREO MUNICIPAL</span>
+        <h1>Mapa de daños y afectaciones</h1>
+        <p>Los polígonos municipales se colorean según daños, apoyo o reporte crítico oficial.</p>
+      </div>
+      <label>Métrica del mapa<select value={metric} onChange={event => setMetric(event.target.value)}>
+        {metadata?.map_metrics?.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
+      </select></label>
+    </section>
+    <Filters metadata={metadata} filters={filters} setFilters={setFilters} />
+    <div className="map-note"><Info size={15}/><span>Rojo oscuro: reporte crítico oficial. Verde claro: municipio con datos, pero sin reporte crítico oficial. Gris: sin datos registrados.</span></div>
+    <div className="map-layout">
+      <section className="map-card">
+        {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
+          <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}`} data={geo} style={style} onEachFeature={onEachFeature} />
+        </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
+        <div className="legend"><strong>{legendTitle}</strong>
+          <span><i style={{ background: "#991B1B" }}/>{metric === "criticidad" ? "Crítico oficial" : "Muy alta"}</span>
+          <span><i style={{ background: "#BBF7D0" }}/>{metric === "criticidad" ? "Con datos / baja" : "Baja"}</span>
+          <span><i style={{ background: "#E2E8F0" }}/>{metric === "criticidad" ? "Sin datos" : "Sin registro"}</span>
+        </div>
+      </section>
+      <aside className="detail-panel">{selected ? <>
+        <div className="detail-title"><MapPinned size={20}/><div><h2>{selected.municipio}</h2><span>{selected.departamento}</span></div></div>
+        <div className="detail-metric"><span>{metricLabel}</span><strong>{metric === "criticidad" ? (selected.criticidad === "Afectación crítica" ? "Crítico oficial" : "Baja / con datos") : fmt(valueFor(selected))}</strong></div>
+        <dl>
+          <div><dt>Puntos totales</dt><dd>{fmt(selected.puntos)}</dd></div>
+          <div><dt>Daños y afectaciones</dt><dd>{fmt(selected.danos)}</dd></div>
+          <div><dt>Apoyo y respuesta</dt><dd>{fmt(selected.apoyo)}</dd></div>
+          <div><dt>Personas afectadas</dt><dd>{fmt(selected.afectados_personas)}</dd></div>
+          <div><dt>Heridos</dt><dd>{fmt(selected.heridos)}</dd></div>
+          <div><dt>Fallecidos</dt><dd>{fmt(selected.fallecidos)}</dd></div>
+          <div><dt>Criticidad oficial</dt><dd>{selected.criticidad || "Sin clasificación oficial"}</dd></div>
+        </dl>
+        <p className="detail-description">{selected.descripcion || "Sin descripción registrada."}</p>
+      </> : <div className="detail-empty"><MapPinned size={34}/><h2>Detalle municipal</h2>{data?.items?.length ? <><p>Selecciona un municipio del filtro actual:</p><div className="filtered-municipalities">{data.items.map(item => <button key={item.divipola} type="button" onClick={() => setSelected(item)}>{item.municipio}<span>{item.departamento}</span></button>)}</div></> : <p>No hay municipios para el filtro actual.</p>}</div>}</aside>
+    </div>
+  </div>;
 }
