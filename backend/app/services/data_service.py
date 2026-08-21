@@ -85,6 +85,24 @@ def _int(value: Any) -> int:
     return int(round(_number(value)))
 
 
+def _derived_criticality(item: dict[str, Any]) -> str:
+    deaths = item["fallecidos"]
+    injuries = item["heridos"]
+    people = item["afectados_personas"]
+    damage = item["danos"]
+    if deaths >= 3 or (people >= 1000 and damage >= 10) or injuries >= 500:
+        return "Afectación crítica"
+    if deaths >= 2 or injuries >= 100 or people >= 500 or damage >= 50:
+        return "Afectación muy alta"
+    if deaths >= 1 or injuries >= 20 or people >= 200 or damage >= 20:
+        return "Afectación alta"
+    if injuries >= 5 or people >= 75 or damage >= 4:
+        return "Afectación media-alta"
+    if injuries > 0 or people > 0 or damage > 0:
+        return "Afectación media"
+    return "Sin clasificación"
+
+
 def _norm(value: Any) -> str:
     text = str(_clean(value) or "")
     text = unicodedata.normalize("NFD", text)
@@ -183,6 +201,8 @@ def load_data() -> dict[str, Any]:
         }
         item["danos"] = sum(item["categorias"][field] for field in DAMAGE_FIELDS)
         item["apoyo"] = sum(item["categorias"][field] for field in SUPPORT_FIELDS)
+        item["criticidad_calculada"] = _derived_criticality(item)
+        item["criticidad_mapa"] = item["criticidad"] if item["criticidad"] != "Sin clasificación oficial" else item["criticidad_calculada"]
         municipalities.append(item)
 
     departments = sorted({m["departamento"] for m in municipalities})

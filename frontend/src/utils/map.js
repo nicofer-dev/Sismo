@@ -1,6 +1,6 @@
 export function metricValue(item, metric) {
   if (!item) return 0;
-  if (metric === "criticidad") return criticalityValue(item.criticidad || item.clasificacion);
+  if (metric === "criticidad") return criticalityValue(item.criticidad_mapa || item.criticidad || item.clasificacion);
   if (metric.startsWith("cat::")) return item.categorias?.[metric.slice(5)] || 0;
   return Number(item[metric] || 0);
 }
