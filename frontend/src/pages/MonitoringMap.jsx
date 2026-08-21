@@ -38,17 +38,19 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
   const metricLabel = metadata?.map_metrics?.find(item => item.key === metric)?.label || "Puntos / casos";
   const hasActiveFilter = Boolean(filters.department || filters.municipality || filters.category);
   const filteredCodes = useMemo(() => new Set((data?.items || []).map(item => item.divipola)), [data]);
+  const isVisible = code => !hasActiveFilter || filteredCodes.has(code);
 
   const valueFor = item => metric === "criticidad" ? mapCriticalityValue(item) : metricValue(item, metric);
   const style = geoFeature => {
     const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
     const item = byCode[code];
-    const visible = !hasActiveFilter || filteredCodes.has(code);
+    const visible = isVisible(code);
+    const selectedCode = selected?.divipola === code;
     return {
       fillColor: !visible ? "#E2E8F0" : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue),
-      weight: visible && item ? 1.1 : .45,
+      weight: selectedCode ? 2.6 : visible && item ? 1.1 : .45,
       color: !visible ? "#CBD5E1" : item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
-      fillOpacity: visible && item ? .82 : .35,
+      fillOpacity: selectedCode ? .95 : visible && item ? .82 : .35,
     };
   };
 
@@ -63,7 +65,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       ? `${!hasActiveFilter || filteredCodes.has(code) ? "" : "<em>Fuera del filtro actual</em><br/>"}<strong>${item.municipio}</strong><br/>${item.departamento}<br/>${metricLabel}: ${mapLabel}<br/>Daños: ${fmt(item.danos)} · Apoyo: ${fmt(item.apoyo)}<br/>Criticidad oficial: ${item.criticidad || "Sin clasificación oficial"}`
       : `DIVIPOLA ${code}`, { sticky: true });
     layer.on({
-      click: () => item && setSelected(item),
+      click: () => item && isVisible(code) && setSelected(item),
       mouseover: event => event.target.setStyle({ weight: 2.2, color: "#0F172A" }),
       mouseout: event => event.target.setStyle(style(geoFeature)),
     });
@@ -91,7 +93,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}`} data={geo} style={style} onEachFeature={onEachFeature} />
+          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} onEachFeature={onEachFeature} />
         </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
         <div className="legend"><strong>{legendTitle}</strong>{metric === "criticidad" ? <>
           <span><i style={{ background: "#991B1B" }}/>Crítica oficial</span>
