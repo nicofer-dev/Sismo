@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Building2, HeartPulse, Home, Landmark, MapPinned, School, Users, UserRound, Route, ShieldAlert, Flame, Newspaper, PackageOpen, Activity, Info } from "lucide-react";
+import { Building2, HeartPulse, Home, Landmark, MapPinned, School, Users, UserRound, Route, ShieldAlert, Flame, Newspaper, PackageOpen, Activity } from "lucide-react";
 import Filters from "../components/Filters";
 import KpiCard from "../components/KpiCard";
 
@@ -26,7 +26,6 @@ export default function Dashboard({metadata,data,filters,setFilters,loading}){
   <section className="hero"><div><span className="eyebrow">REPORTE TERRITORIAL · SISMO 10/08/2026</span><h1>Estado actual de los municipios - Sismo</h1><p>Seguimiento territorial de daños, población afectada, pobreza multidimensional y respuesta humanitaria.</p></div><div className="hero-badge"><Activity size={28}/><span>{official.magnitud_epicentro?"Magnitud · epicentro":"Municipios analizados"}</span><strong className="hero-badge-text">{official.magnitud_epicentro||fmt(s.municipios)}</strong></div></section>
   <Filters metadata={metadata} filters={filters} setFilters={setFilters}/>
   {loading?<div className="loading">Actualizando indicadores…</div>:<>
-   <div className="source-strip"><Info size={16}/><span>{filtered?"Indicadores calculados para el filtro actual.":"Departamentos, municipios, heridos, fallecidos y puntos de referencia provienen del consolidado de ‘Análisis general’. Población afectada y categorías se calculan desde ‘Municipios completos’."}</span></div>
    <section className="kpi-grid">
     <KpiCard icon={MapPinned} label="Departamentos" value={fmt(main.departamentos)}/><KpiCard icon={MapPinned} label="Municipios" value={fmt(main.municipios)}/>
     <KpiCard icon={Users} label="Familias afectadas" value={fmt(s.afectados_familia)}/><KpiCard icon={UserRound} label="Personas afectadas" value={fmt(s.afectados_personas)}/>

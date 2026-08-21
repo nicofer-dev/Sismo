@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import { feature } from "topojson-client";
 import "leaflet/dist/leaflet.css";
-import { Info, MapPinned } from "lucide-react";
+import { MapPinned } from "lucide-react";
 import Filters from "../components/Filters";
 import { colorFor, colorForOfficialCriticality, colorForSupportDamage, mapCriticalityValue, metricValue, radarRadius, supportDamageScore } from "../utils/map";
 
@@ -103,7 +103,6 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       </select></label>
     </section>
     <Filters metadata={metadata} filters={filters} setFilters={setFilters} />
-    <div className="map-note"><Info size={15}/><span>El tamaño y color del radar combinan daños y puntos de apoyo con peso moderado para que los apoyos no oculten la severidad de los daños. La clasificación oficial sigue disponible.</span></div>
     <div className="map-layout">
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
