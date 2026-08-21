@@ -64,5 +64,5 @@ export function colorForSupportDamage(item, breaks) {
 
 export function radarRadius(item, maxScore) {
   const score = supportDamageScore(item);
-  return score && maxScore ? 7 + Math.sqrt(score / maxScore) * 23 : 5;
+  return score && maxScore ? Math.max(8, 8 + Math.sqrt(score / maxScore) * 23) : 8;
 }
