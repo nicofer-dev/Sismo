@@ -7,7 +7,7 @@ export function metricValue(item, metric) {
 
 export function criticalityValue(value) {
   const normalized = String(value || "").toLowerCase().replace(/^afectación\s+/, "").replace("-", " ");
-  return ({ "sin clasificación oficial": 0, media: 2, "media alta": 3, alta: 4, "muy alta": 5, crítica: 6 }[normalized] ?? 0);
+  return ({ "sin clasificación oficial": 0, "sin clasificación": 0, baja: 1, media: 2, "media alta": 3, alta: 4, "muy alta": 5, crítica: 6 }[normalized] ?? 0);
 }
 
 export function colorFor(value, maxValue) {

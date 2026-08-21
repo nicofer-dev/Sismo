@@ -98,6 +98,8 @@ def _derived_criticality(item: dict[str, Any]) -> str:
         return "Afectación alta"
     if injuries >= 5 or people >= 75 or damage >= 4:
         return "Afectación media-alta"
+    if damage > 0 and not people and not injuries and not deaths and damage <= 3:
+        return "Afectación baja"
     if injuries > 0 or people > 0 or damage > 0:
         return "Afectación media"
     return "Sin clasificación"
