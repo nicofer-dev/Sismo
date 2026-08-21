@@ -121,7 +121,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
           <span><i style={{ background: "#F97316" }}/>Media-alta</span>
           <span><i style={{ background: "#F59E0B" }}/>Media</span>
           <span><i style={{ background: "#FACC15" }}/>Baja con daños</span>
-          <span><i style={{ background: "#F1EEFF" }}/>Con registro sin daños</span>
+          <span><i style={{ background: "#E8C7CE" }}/>Con registro sin daños</span>
           <span><i style={{ background: "#E2E8F0" }}/>Sin registro</span>
         </>}</div>
       </section>

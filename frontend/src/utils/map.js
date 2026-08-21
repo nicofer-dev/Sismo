@@ -55,8 +55,8 @@ export function supportDamageScore(item) {
 export function colorForSupportDamage(item, breaks) {
   if (!item) return "#E2E8F0";
   const score = supportDamageScore(item);
-  if (!score) return "#F1EEFF";
-  if (score <= breaks[0]) return "#F1EEFF";
+  if (!score) return "#E8C7CE";
+  if (score <= breaks[0]) return "#E8C7CE";
   if (score <= breaks[1]) return "#FACC15";
   if (score <= breaks[2]) return "#F97316";
   return "#DC2626";
