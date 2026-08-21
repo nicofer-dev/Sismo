@@ -46,3 +46,23 @@ export function colorForDamage(item, breaks) {
   if (item.danos <= breaks[2]) return "#F97316";
   return "#DC2626";
 }
+
+export function supportDamageScore(item) {
+  if (!item) return 0;
+  return Number(item.danos || 0) + Number(item.apoyo || 0) * 0.25;
+}
+
+export function colorForSupportDamage(item, breaks) {
+  if (!item) return "#E2E8F0";
+  const score = supportDamageScore(item);
+  if (!score) return "#BBF7D0";
+  if (score <= breaks[0]) return "#BBF7D0";
+  if (score <= breaks[1]) return "#FACC15";
+  if (score <= breaks[2]) return "#F97316";
+  return "#DC2626";
+}
+
+export function radarRadius(item, maxScore) {
+  const score = supportDamageScore(item);
+  return score && maxScore ? 5 + Math.sqrt(score / maxScore) * 15 : 4;
+}

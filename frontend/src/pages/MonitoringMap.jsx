@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { GeoJSON, MapContainer, TileLayer } from "react-leaflet";
+import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import { feature } from "topojson-client";
 import "leaflet/dist/leaflet.css";
 import { Info, MapPinned } from "lucide-react";
 import Filters from "../components/Filters";
-import { colorFor, colorForDamage, colorForOfficialCriticality, mapCriticalityValue, metricValue } from "../utils/map";
+import { colorFor, colorForOfficialCriticality, colorForSupportDamage, mapCriticalityValue, metricValue, radarRadius, supportDamageScore } from "../utils/map";
 
 function fmt(value) {
   return new Intl.NumberFormat("es-CO").format(Number(value || 0));
@@ -14,6 +14,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
   const [topology, setTopology] = useState(null);
   const [metric, setMetric] = useState("danos");
   const [selected, setSelected] = useState(null);
+  const [centers, setCenters] = useState({});
 
   useEffect(() => {
     fetch("/data/mapa_municipios.json").then(response => response.json()).then(setTopology);
@@ -36,6 +37,11 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
   );
   const maxValue = metric === "criticidad" ? 6 : (mapData?.scale_max?.[metric] || data?.scale_max?.[metric] || 0);
   const damageBreaks = mapData?.damage_breaks || data?.damage_breaks || [1, 3, 6, 13];
+  const supportDamageBreaks = useMemo(() => {
+    const scores = (mapData?.items || []).map(supportDamageScore).filter(score => score > 0).sort((a, b) => a - b);
+    return scores.length ? [.75, .9, .97].map(percentile => scores[Math.floor((scores.length - 1) * percentile)]) : [1, 3, 6];
+  }, [mapData]);
+  const maxSupportDamageScore = useMemo(() => Math.max(0, ...(mapData?.items || []).map(supportDamageScore)), [mapData]);
   const metricLabel = metadata?.map_metrics?.find(item => item.key === metric)?.label || "Puntos / casos";
   const hasActiveFilter = Boolean(filters.department || filters.municipality || filters.category);
   const filteredCodes = useMemo(() => new Set((data?.items || []).map(item => item.divipola)), [data]);
@@ -48,16 +54,18 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     const visible = isVisible(code);
     const selectedCode = selected?.divipola === code;
     return {
-      fillColor: !visible ? "#E2E8F0" : metric === "criticidad" ? colorForOfficialCriticality(item) : metric === "danos" ? colorForDamage(item, damageBreaks) : colorFor(valueFor(item), maxValue),
-      weight: selectedCode ? 2.6 : visible && item ? 1.1 : .45,
-      color: !visible ? "#CBD5E1" : item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
-      fillOpacity: selectedCode ? .95 : visible && item ? .82 : .35,
+      fillColor: "transparent",
+      weight: selectedCode ? 2.2 : .7,
+      color: !visible ? "#CBD5E1" : "#94A3B8",
+      fillOpacity: 0,
     };
   };
 
   const onEachFeature = (geoFeature, layer) => {
     const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
     const item = byCode[code];
+    const center = layer.getBounds().getCenter();
+    setCenters(previous => previous[code] ? previous : { ...previous, [code]: [center.lat, center.lng] });
     const value = valueFor(item);
     const mapLabel = metric === "criticidad"
       ? (item?.criticidad === "Afectación crítica" ? "Crítico oficial" : item ? "Baja / con datos" : "Sin datos")
@@ -82,19 +90,23 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       <div>
         <span className="eyebrow">MONITOREO MUNICIPAL</span>
         <h1>Mapa de daños y afectaciones</h1>
-        <p>Los polígonos municipales se colorean según daños, apoyo o reporte crítico oficial.</p>
+        <p>Los círculos muestran la intensidad combinada de daños y puntos de apoyo; los límites municipales sirven como referencia.</p>
       </div>
       <label>Métrica del mapa<select value={metric} onChange={event => setMetric(event.target.value)}>
         {metadata?.map_metrics?.map(item => <option key={item.key} value={item.key}>{item.label}</option>)}
       </select></label>
     </section>
     <Filters metadata={metadata} filters={filters} setFilters={setFilters} />
-    <div className="map-note"><Info size={15}/><span>El mapa de calor representa la suma de daños y afectaciones. Los puntos de apoyo se consultan por separado; la clasificación oficial también está disponible como métrica.</span></div>
+    <div className="map-note"><Info size={15}/><span>El tamaño y color del radar combinan daños y puntos de apoyo con peso moderado para que los apoyos no oculten la severidad de los daños. La clasificación oficial sigue disponible.</span></div>
     <div className="map-layout">
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} onEachFeature={onEachFeature} />
+          {Object.values(byCode).filter(item => centers[item.divipola] && isVisible(item.divipola)).map(item => {
+            const circleColor = metric === "danos" ? colorForSupportDamage(item, supportDamageBreaks) : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue);
+            return <CircleMarker key={`${item.divipola}-${metric}`} center={centers[item.divipola]} radius={radarRadius(item, maxSupportDamageScore)} pathOptions={{ color: circleColor, fillColor: circleColor, fillOpacity: selected?.divipola === item.divipola ? .95 : .7, weight: selected?.divipola === item.divipola ? 3 : 1 }} eventHandlers={{ click: () => setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
+          })}
         </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
         <div className="legend"><strong>{legendTitle}</strong>{metric === "criticidad" ? <>
           <span><i style={{ background: "#991B1B" }}/>Crítica oficial</span>
