@@ -105,7 +105,8 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
           <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} onEachFeature={onEachFeature} />
           {Object.values(byCode).filter(item => centers[item.divipola] && isVisible(item.divipola)).map(item => {
             const circleColor = metric === "danos" ? colorForSupportDamage(item, supportDamageBreaks) : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue);
-            return <CircleMarker key={`${item.divipola}-${metric}`} center={centers[item.divipola]} radius={radarRadius(item, maxSupportDamageScore)} pathOptions={{ color: circleColor, fillColor: circleColor, fillOpacity: selected?.divipola === item.divipola ? .95 : .7, weight: selected?.divipola === item.divipola ? 3 : 1 }} eventHandlers={{ click: () => setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
+            const isSupportOnly = !item.danos && item.apoyo > 0;
+            return <CircleMarker key={`${item.divipola}-${metric}`} center={centers[item.divipola]} radius={radarRadius(item, maxSupportDamageScore)} pathOptions={{ color: circleColor, fillColor: circleColor, fillOpacity: selected?.divipola === item.divipola ? .95 : isSupportOnly ? .42 : .7, weight: selected?.divipola === item.divipola ? 3 : isSupportOnly ? .7 : 1 }} eventHandlers={{ click: () => setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
           })}
         </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
         <div className="legend"><strong>{legendTitle}</strong>{metric === "criticidad" ? <>
