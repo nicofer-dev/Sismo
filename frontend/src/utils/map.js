@@ -12,9 +12,20 @@ export function criticalityValue(value) {
 
 export function mapCriticalityValue(item) {
   if (!item) return 0;
-  if (item.criticidad === "Afectación crítica") return 6;
+  if (item.criticidad && item.criticidad !== "Sin clasificación oficial") return criticalityValue(item.criticidad);
   if (item.puntos > 0 || item.danos > 0 || item.apoyo > 0 || item.afectados_personas > 0 || item.heridos > 0 || item.fallecidos > 0) return 1;
   return 0;
+}
+
+export function colorForOfficialCriticality(item) {
+  if (!item) return "#E2E8F0";
+  if (item.criticidad === "Afectación crítica") return "#991B1B";
+  if (item.criticidad === "Afectación muy alta") return "#DC2626";
+  if (item.criticidad === "Afectación alta") return "#F97316";
+  if (item.criticidad === "Afectación media-alta") return "#FACC15";
+  if (item.criticidad === "Afectación media") return "#FEF08A";
+  if (item.puntos > 0 || item.danos > 0 || item.apoyo > 0 || item.afectados_personas > 0 || item.heridos > 0 || item.fallecidos > 0) return "#BBF7D0";
+  return "#E2E8F0";
 }
 
 export function colorFor(value, maxValue) {
