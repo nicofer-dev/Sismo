@@ -46,11 +46,13 @@ def municipalities(
     rows = filter_municipalities(department, municipality, category)
     all_rows = load_data()["municipalities"]
     scale_max = {key: max((item[key] for item in all_rows), default=0) for key in ("danos", "apoyo", "puntos", "afectados_personas", "afectados_familia", "heridos", "fallecidos")}
+    damage_values = sorted(item["danos"] for item in all_rows if item["danos"] > 0)
+    damage_breaks = [damage_values[int((len(damage_values) - 1) * percentile)] for percentile in (.25, .5, .75, .9)] if damage_values else [1, 1, 1, 1]
     for key in ("afectados_personas", "afectados_familia", "heridos", "fallecidos"):
         scale_max[key] = max((item[key] for item in all_rows), default=0)
     for category_name in CATEGORY_FIELDS:
         scale_max[f"cat::{category_name}"] = max((item["categorias"].get(category_name, 0) for item in all_rows), default=0)
-    return {"items": rows, "summary": make_summary(rows), "scale_max": scale_max}
+    return {"items": rows, "summary": make_summary(rows), "scale_max": scale_max, "damage_breaks": damage_breaks}
 
 
 @router.get("/summary")

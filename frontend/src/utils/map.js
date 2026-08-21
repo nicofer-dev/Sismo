@@ -37,3 +37,12 @@ export function colorFor(value, maxValue) {
   if (ratio >= 0.2) return "#FACC15";
   return "#BBF7D0";
 }
+
+export function colorForDamage(item, breaks) {
+  if (!item) return "#E2E8F0";
+  if (!item.danos) return "#BBF7D0";
+  if (item.danos <= breaks[0]) return "#FACC15";
+  if (item.danos <= breaks[1]) return "#F59E0B";
+  if (item.danos <= breaks[2]) return "#F97316";
+  return "#DC2626";
+}

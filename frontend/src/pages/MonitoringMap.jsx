@@ -4,7 +4,7 @@ import { feature } from "topojson-client";
 import "leaflet/dist/leaflet.css";
 import { Info, MapPinned } from "lucide-react";
 import Filters from "../components/Filters";
-import { colorFor, colorForOfficialCriticality, mapCriticalityValue, metricValue } from "../utils/map";
+import { colorFor, colorForDamage, colorForOfficialCriticality, mapCriticalityValue, metricValue } from "../utils/map";
 
 function fmt(value) {
   return new Intl.NumberFormat("es-CO").format(Number(value || 0));
@@ -35,6 +35,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     [topology],
   );
   const maxValue = metric === "criticidad" ? 6 : (mapData?.scale_max?.[metric] || data?.scale_max?.[metric] || 0);
+  const damageBreaks = mapData?.damage_breaks || data?.damage_breaks || [1, 3, 6, 13];
   const metricLabel = metadata?.map_metrics?.find(item => item.key === metric)?.label || "Puntos / casos";
   const hasActiveFilter = Boolean(filters.department || filters.municipality || filters.category);
   const filteredCodes = useMemo(() => new Set((data?.items || []).map(item => item.divipola)), [data]);
@@ -47,7 +48,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     const visible = isVisible(code);
     const selectedCode = selected?.divipola === code;
     return {
-      fillColor: !visible ? "#E2E8F0" : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue),
+      fillColor: !visible ? "#E2E8F0" : metric === "criticidad" ? colorForOfficialCriticality(item) : metric === "danos" ? colorForDamage(item, damageBreaks) : colorFor(valueFor(item), maxValue),
       weight: selectedCode ? 2.6 : visible && item ? 1.1 : .45,
       color: !visible ? "#CBD5E1" : item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
       fillOpacity: selectedCode ? .95 : visible && item ? .82 : .35,
@@ -104,8 +105,11 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
           <span><i style={{ background: "#BBF7D0" }}/>Con datos / baja</span>
           <span><i style={{ background: "#E2E8F0" }}/>Sin datos</span>
         </> : <>
-          <span><i style={{ background: "#991B1B" }}/>Muy alta</span>
-          <span><i style={{ background: "#BBF7D0" }}/>Baja</span>
+          <span><i style={{ background: "#DC2626" }}/>Alta</span>
+          <span><i style={{ background: "#F97316" }}/>Media-alta</span>
+          <span><i style={{ background: "#F59E0B" }}/>Media</span>
+          <span><i style={{ background: "#FACC15" }}/>Baja con daños</span>
+          <span><i style={{ background: "#BBF7D0" }}/>Con registro sin daños</span>
           <span><i style={{ background: "#E2E8F0" }}/>Sin registro</span>
         </>}</div>
       </section>
