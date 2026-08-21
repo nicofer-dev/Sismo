@@ -107,8 +107,10 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
             const circleColor = metric === "danos" ? colorForSupportDamage(item, supportDamageBreaks) : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue);
             const isGreen = metric === "danos" && supportDamageScore(item) <= supportDamageBreaks[0];
             const isSupportOnly = !item.danos && item.apoyo > 0;
-            const radius = isGreen ? 4 : radarRadius(item, maxSupportDamageScore);
-            return <CircleMarker key={`${item.divipola}-${metric}`} center={centers[item.divipola]} radius={radius} pathOptions={{ color: circleColor, fillColor: circleColor, fillOpacity: selected?.divipola === item.divipola ? .95 : isSupportOnly ? .42 : .7, weight: selected?.divipola === item.divipola ? 3 : isSupportOnly ? .7 : 1 }} eventHandlers={{ click: () => setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
+            const isSelected = selected?.divipola === item.divipola;
+            const baseRadius = isGreen ? 4 : radarRadius(item, maxSupportDamageScore);
+            const radius = isSelected ? baseRadius + 4 : baseRadius;
+            return <CircleMarker key={`${item.divipola}-${metric}-${isSelected ? "selected" : "normal"}`} center={centers[item.divipola]} radius={radius} pathOptions={{ color: isSelected ? "#0F172A" : circleColor, fillColor: circleColor, fillOpacity: isSelected ? .95 : isSupportOnly ? .42 : .7, weight: isSelected ? 3 : isSupportOnly ? .7 : 1 }} eventHandlers={{ click: () => isVisible(item.divipola) && setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
           })}
         </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
         <div className="legend"><strong>{legendTitle}</strong>{metric === "criticidad" ? <>
