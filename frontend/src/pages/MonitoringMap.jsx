@@ -61,6 +61,12 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     };
   };
 
+  const captureCenter = (geoFeature, layer) => {
+    const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
+    const center = layer.getBounds().getCenter();
+    setCenters(previous => previous[code] ? previous : { ...previous, [code]: [center.lat, center.lng] });
+  };
+
   const onEachFeature = (geoFeature, layer) => {
     const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
     const item = byCode[code];
@@ -102,7 +108,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} interactive={false} />
+          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} onEachFeature={captureCenter} interactive={false} />
           {Object.values(byCode).filter(item => centers[item.divipola] && isVisible(item.divipola)).map(item => {
             const circleColor = metric === "danos" ? colorForSupportDamage(item, supportDamageBreaks) : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue);
             const isGreen = metric === "danos" && supportDamageScore(item) <= supportDamageBreaks[0];
