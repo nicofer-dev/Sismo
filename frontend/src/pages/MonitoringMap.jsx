@@ -36,15 +36,19 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
   );
   const maxValue = metric === "criticidad" ? 6 : (mapData?.scale_max?.[metric] || data?.scale_max?.[metric] || 0);
   const metricLabel = metadata?.map_metrics?.find(item => item.key === metric)?.label || "Puntos / casos";
+  const hasActiveFilter = Boolean(filters.department || filters.municipality || filters.category);
+  const filteredCodes = useMemo(() => new Set((data?.items || []).map(item => item.divipola)), [data]);
 
   const valueFor = item => metric === "criticidad" ? mapCriticalityValue(item) : metricValue(item, metric);
   const style = geoFeature => {
-    const item = byCode[String(geoFeature.properties.codigo_municipio_s).padStart(5, "0")];
+    const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
+    const item = byCode[code];
+    const visible = !hasActiveFilter || filteredCodes.has(code);
     return {
-      fillColor: metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue),
-      weight: item ? 1.1 : .45,
-      color: item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
-      fillOpacity: item ? .82 : .35,
+      fillColor: !visible ? "#E2E8F0" : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue),
+      weight: visible && item ? 1.1 : .45,
+      color: !visible ? "#CBD5E1" : item?.criticidad === "Afectación crítica" ? "#7F1D1D" : item ? "#475569" : "#CBD5E1",
+      fillOpacity: visible && item ? .82 : .35,
     };
   };
 
@@ -56,7 +60,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       ? (item?.criticidad === "Afectación crítica" ? "Crítico oficial" : item ? "Baja / con datos" : "Sin datos")
       : fmt(value);
     layer.bindTooltip(item
-      ? `<strong>${item.municipio}</strong><br/>${item.departamento}<br/>${metricLabel}: ${mapLabel}<br/>Daños: ${fmt(item.danos)} · Apoyo: ${fmt(item.apoyo)}<br/>Criticidad oficial: ${item.criticidad || "Sin clasificación oficial"}`
+      ? `${!hasActiveFilter || filteredCodes.has(code) ? "" : "<em>Fuera del filtro actual</em><br/>"}<strong>${item.municipio}</strong><br/>${item.departamento}<br/>${metricLabel}: ${mapLabel}<br/>Daños: ${fmt(item.danos)} · Apoyo: ${fmt(item.apoyo)}<br/>Criticidad oficial: ${item.criticidad || "Sin clasificación oficial"}`
       : `DIVIPOLA ${code}`, { sticky: true });
     layer.on({
       click: () => item && setSelected(item),
