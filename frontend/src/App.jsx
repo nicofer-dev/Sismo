@@ -13,7 +13,12 @@ export default function App(){
   const [filters,setFilters]=useState({department:"",municipality:"",category:""});
   const [loading,setLoading]=useState(true);
   useEffect(()=>{ api.metadata().then(setMetadata).catch(console.error); },[]);
-  useEffect(()=>{ api.municipalities({}).then(setMapData).catch(console.error); },[]);
-  useEffect(()=>{ setLoading(true); api.municipalities(filters).then(setData).catch(console.error).finally(()=>setLoading(false)); },[filters]);
+  useEffect(()=>{
+    api.municipalities({}).then(result=>{ setMapData(result); setData(result); setLoading(false); }).catch(console.error);
+  },[]);
+  useEffect(()=>{
+    if(!filters.department&&!filters.municipality&&!filters.category) return;
+    setLoading(true); api.municipalities(filters).then(setData).catch(console.error).finally(()=>setLoading(false));
+  },[filters]);
   return <Layout page={page} setPage={setPage}>{page === "dashboard" ? <Dashboard metadata={metadata} data={data} filters={filters} setFilters={setFilters} loading={loading}/> : <MonitoringMap metadata={metadata} data={data} mapData={mapData} filters={filters} setFilters={setFilters}/>}</Layout>;
 }
