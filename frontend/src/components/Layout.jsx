@@ -10,6 +10,14 @@ export default function Layout({ page, setPage, children }) {
       </nav>
     </header>
     <main>{children}</main>
-    <footer>Visor territorial de afectaciones · Colombia · Corte de información 2026</footer>
+    <footer>
+      <span>Fecha de actualización: 24 de agosto de 2026</span>
+      <strong>Visor territorial de afectaciones · Colombia · Corte de información 2026</strong>
+      <span className="footer-sources">
+        Fuentes: <a href="https://www.mapadelterremoto.com/" target="_blank" rel="noreferrer">Mapa del Terremoto</a>
+        <span aria-hidden="true"> · </span>
+        <a href="https://portal.gestiondelriesgo.gov.co/" target="_blank" rel="noreferrer">UNGRD</a>
+      </span>
+    </footer>
   </div>
 }
