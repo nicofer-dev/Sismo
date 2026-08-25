@@ -55,6 +55,12 @@ SUPPORT_FIELDS = [
     "Otro",
 ]
 
+# Correcciones verificadas de DIVIPOLA en la fuente. Se aplican por
+# departamento y municipio para evitar ubicar el registro en otro territorio.
+DIVIPOLA_CORRECTIONS = {
+    ("quindio", "cordoba"): "63212",
+}
+
 
 def _clean(value: Any) -> Any:
     if value is None:
@@ -180,6 +186,7 @@ def load_data() -> dict[str, Any]:
         if not divipola or not muni or not dept or _norm(muni) == "total":
             continue
         divipola = str(divipola).split(".")[0].zfill(5)
+        divipola = DIVIPOLA_CORRECTIONS.get((_norm(dept), _norm(muni)), divipola)
         news = news_index.get((_norm(dept), _norm(muni)), {})
         item = {
             "divipola": divipola,

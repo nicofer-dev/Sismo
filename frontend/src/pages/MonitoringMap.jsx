@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CircleMarker, GeoJSON, MapContainer, TileLayer, Tooltip } from "react-leaflet";
 import { feature } from "topojson-client";
 import "leaflet/dist/leaflet.css";
-import { MapPinned } from "lucide-react";
+import { MapPinned, X } from "lucide-react";
 import Filters from "../components/Filters";
 import { colorFor, colorForOfficialCriticality, colorForSupportDamage, mapCriticalityValue, metricValue, radarRadius, supportDamageScore } from "../utils/map";
 
@@ -115,7 +115,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
             const isSelected = selected?.divipola === item.divipola;
             const baseRadius = isGreen ? 4 : radarRadius(item, maxSupportDamageScore);
             const radius = isSelected ? baseRadius + 4 : baseRadius;
-            return <CircleMarker key={`${item.divipola}-${metric}-${isSelected ? "selected" : "normal"}`} center={centers[item.divipola]} radius={radius} pathOptions={{ color: isSelected ? "#0F172A" : circleColor, fillColor: circleColor, fillOpacity: isSelected ? .95 : isSupportOnly ? .42 : .7, weight: isSelected ? 3 : isSupportOnly ? .7 : 1 }} eventHandlers={{ click: () => isVisible(item.divipola) && setSelected(item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
+            return <CircleMarker key={`${item.divipola}-${metric}-${isSelected ? "selected" : "normal"}`} center={centers[item.divipola]} radius={radius} pathOptions={{ color: isSelected ? "#0F172A" : circleColor, fillColor: circleColor, fillOpacity: isSelected ? .95 : isSupportOnly ? .42 : .7, weight: isSelected ? 3 : isSupportOnly ? .7 : 1 }} eventHandlers={{ click: () => isVisible(item.divipola) && setSelected(current => current?.divipola === item.divipola ? null : item) }}><Tooltip><strong>{item.municipio}</strong><br/>Daños: {fmt(item.danos)} · Apoyo: {fmt(item.apoyo)}</Tooltip></CircleMarker>;
           })}
         </MapContainer> : <div className="loading">Cargando cartografía municipal…</div>}
         <div className="legend"><strong>{legendTitle}</strong>{metric === "criticidad" ? <>
@@ -136,7 +136,7 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
         </>}</div>
       </section>
       <aside className="detail-panel">{selected ? <>
-        <div className="detail-title"><MapPinned size={20}/><div><h2>{selected.municipio}</h2><span>{selected.departamento}</span></div></div>
+        <div className="detail-title"><MapPinned size={20}/><div><h2>{selected.municipio}</h2><span>{selected.departamento}</span></div><button type="button" className="clear-selection" onClick={() => setSelected(null)} aria-label={`Deseleccionar ${selected.municipio}`} title="Deseleccionar municipio"><X size={16}/> Deseleccionar</button></div>
         <div className="detail-metric"><span>{metricLabel}</span><strong>{metric === "criticidad" ? (selected.criticidad !== "Sin clasificación oficial" ? `${selected.criticidad} oficial` : "Baja / con datos") : fmt(valueFor(selected))}</strong></div>
         <dl>
           <div><dt>Puntos totales</dt><dd>{fmt(selected.puntos)}</dd></div>
