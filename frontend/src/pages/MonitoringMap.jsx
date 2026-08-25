@@ -35,6 +35,10 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     () => topology ? feature(topology, topology.objects.MGN_MPIO_POLITICO_rJAC) : null,
     [topology],
   );
+  const selectedGeometry = useMemo(() => {
+    if (!geo || !selected) return null;
+    return geo.features.find(geoFeature => String(geoFeature.properties.codigo_municipio_s).padStart(5, "0") === selected.divipola) || null;
+  }, [geo, selected]);
   const maxValue = metric === "criticidad" ? 6 : (mapData?.scale_max?.[metric] || data?.scale_max?.[metric] || 0);
   const damageBreaks = mapData?.damage_breaks || data?.damage_breaks || [1, 3, 6, 13];
   const supportDamageBreaks = useMemo(() => {
@@ -52,10 +56,9 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
     const code = String(geoFeature.properties.codigo_municipio_s).padStart(5, "0");
     const item = byCode[code];
     const visible = isVisible(code);
-    const selectedCode = selected?.divipola === code;
     return {
       fillColor: "transparent",
-      weight: selectedCode ? 2.2 : .7,
+      weight: .7,
       color: !visible ? "#CBD5E1" : "#94A3B8",
       fillOpacity: 0,
     };
@@ -107,7 +110,8 @@ export default function MonitoringMap({ metadata, data, mapData, filters, setFil
       <section className="map-card">
         {geo ? <MapContainer center={[4.3, -73.4]} zoom={5.3} minZoom={4} style={{ height: "100%", width: "100%" }} zoomControl>
           <TileLayer attribution="&copy; OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          <GeoJSON key={`${metric}-${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}-${selected?.divipola || "none"}`} data={geo} style={style} onEachFeature={captureCenter} interactive={false} />
+          <GeoJSON key={`${filters.department}-${filters.municipality}-${filters.category}-${mapData?.items?.length || data?.items?.length || 0}`} data={geo} style={style} onEachFeature={captureCenter} interactive={false} />
+          {selectedGeometry && <GeoJSON key={`selected-outline-${selected.divipola}`} data={selectedGeometry} style={{ fillColor: "transparent", fillOpacity: 0, color: "#0F172A", weight: 2.2 }} interactive={false} />}
           {Object.values(byCode).filter(item => centers[item.divipola] && isVisible(item.divipola)).map(item => {
             const circleColor = metric === "danos" ? colorForSupportDamage(item, supportDamageBreaks) : metric === "criticidad" ? colorForOfficialCriticality(item) : colorFor(valueFor(item), maxValue);
             const isGreen = metric === "danos" && supportDamageScore(item) <= supportDamageBreaks[0];
